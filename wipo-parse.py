@@ -3,17 +3,21 @@ import re
 from bs4 import BeautifulSoup
 
 list = []
+i = 0
 
 for filename in os.listdir("WIPO"):
+    i += 1
+    if i % 100 == 0:
+        print("Record ", i)
     with open("WIPO/" + filename, "rb") as file:
         contents = file.read()
         soup = BeautifulSoup(contents, "html.parser")
         contents = soup.get_text()
         list_item = {
             "filename": filename,
-            "decision": 'UNKNOWN',
-            "type": 'UNKNOWN',
-            "responded": 'UNKNOWN'
+            "decision": None,
+            "type": None,
+            "responded": None
         }
         contents = contents.replace("\n", " ").lower()
 
@@ -37,7 +41,6 @@ for filename in os.listdir("WIPO"):
         m = re.findall('b\.\s*respondent.*?6\.\s*discussion', contents, re.M)
         if len(m):
             respondent_text = m[0]
-            print(respondent_text)
             if "did not reply" in respondent_text:
                 list_item["responded"] = False
             elif "did not respond" in respondent_text:
@@ -49,7 +52,11 @@ for filename in os.listdir("WIPO"):
 
         list.append(list_item)
 
-        print(list_item)
+        # print(list_item)
+
+overall = {}
+responded = {}
+notResponded = {}
 
 with open("results.csv", 'w') as file:
     file.write("filename")
@@ -61,11 +68,32 @@ with open("results.csv", 'w') as file:
     file.write("responded")
     file.write("\n")
     for item in list:
-        file.write(item["filename"])
-        file.write(",")
-        file.write(item["decision"])
-        file.write(",")
-        file.write(item["type"])
-        file.write(",")
-        file.write(str(item["responded"]))
-        file.write("\n")
+        if item["decision"] != None and item["type"] != None and item["responded"] != None:
+            if item["decision"] in overall:
+                overall[item["decision"]] += 1
+            else:
+                overall[item["decision"]] = 1
+            if item["responded"]:
+                if item["decision"] in responded:
+                    responded[item["decision"]] += 1
+                else:
+                    responded[item["decision"]] = 1
+            else:
+                if item["decision"] in notResponded:
+                    notResponded[item["decision"]] += 1
+                else:
+                    notResponded[item["decision"]] = 1
+            file.write(item["filename"])
+            file.write(",")
+            file.write(item["decision"])
+            file.write(",")
+            file.write(item["type"])
+            file.write(",")
+            file.write(str(item["responded"]))
+            file.write("\n")
+
+print("overall:", overall)
+print("responded:", responded)
+print("not responded:", notResponded)
+
+print("Done")
